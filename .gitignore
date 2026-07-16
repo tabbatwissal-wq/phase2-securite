@@ -1,0 +1,43 @@
+# ── Environnement virtuel ──────────────────────────────────────────────────
+venv/
+ENV/
+env/
+.venv/
+
+# ── Cache Python ───────────────────────────────────────────────────────────
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ── Tests & couverture ─────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+.htmlcov/
+htmlcov/
+
+# ── Secrets & configuration locale ────────────────────────────────────────
+# Ne JAMAIS commiter .env — il contient les clés API, tokens et mots de passe
+.env
+.flaskenv
+
+# ── Phase 2 : ChromaDB (base vectorielle locale) ───────────────────────────
+# Données générées localement par indexer_rapports.py — volumineuses et propres
+# à chaque machine. Chaque développeur peuple sa propre instance ChromaDB.
+chroma_db/
+
+# ── IDEs & éditeurs ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swn
+.DS_Store
+Thumbs.db
+
+# ── Logs locaux (si générés hors MongoDB) ─────────────────────────────────
+*.log
+logs/

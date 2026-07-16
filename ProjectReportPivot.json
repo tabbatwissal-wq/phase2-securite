@@ -1,0 +1,133 @@
+{
+  "schema_version": "1.0.0",
+  "project": {
+    "project_id": "KAN",
+    "nom_projet": "Projet KAN",
+    "cle_jira": "KAN"
+  },
+  "reporting_period": {
+    "genere_le": "2026-07-14T17:24:18.283754Z"
+  },
+  "kpis": [
+    {
+      "code": "total_tickets",
+      "label": "Nombre total de tickets",
+      "valeur": 5.0,
+      "unite": null,
+      "commentaire": null
+    },
+    {
+      "code": "avancement_pct",
+      "label": "Avancement global",
+      "valeur": 0.0,
+      "unite": "%",
+      "commentaire": null
+    },
+    {
+      "code": "tickets_termines",
+      "label": "Tickets terminés",
+      "valeur": 0.0,
+      "unite": null,
+      "commentaire": null
+    },
+    {
+      "code": "tickets_en_cours",
+      "label": "Tickets en cours",
+      "valeur": 1.0,
+      "unite": null,
+      "commentaire": null
+    },
+    {
+      "code": "tickets_en_retard",
+      "label": "Tickets en retard",
+      "valeur": 0.0,
+      "unite": null,
+      "commentaire": null
+    },
+    {
+      "code": "tickets_critiques",
+      "label": "Tickets priorité critique",
+      "valeur": 0.0,
+      "unite": null,
+      "commentaire": null
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "KAN-5",
+      "titre": "Rédiger la documentation",
+      "statut": "a_faire",
+      "priorite": "moyenne",
+      "responsable_email": null,
+      "date_echeance": null,
+      "en_retard": false,
+      "source": {
+        "source_system": "jira",
+        "source_record_id": "KAN-5",
+        "extracted_at": "2026-07-14T17:24:18.236677Z",
+        "champ_origine": "fields.status.name"
+      }
+    },
+    {
+      "task_id": "KAN-4",
+      "titre": "Tester le filtrage de sécurité",
+      "statut": "a_faire",
+      "priorite": "moyenne",
+      "responsable_email": null,
+      "date_echeance": null,
+      "en_retard": false,
+      "source": {
+        "source_system": "jira",
+        "source_record_id": "KAN-4",
+        "extracted_at": "2026-07-14T17:24:18.237681Z",
+        "champ_origine": "fields.status.name"
+      }
+    },
+    {
+      "task_id": "KAN-3",
+      "titre": "Créer le template PowerPoint",
+      "statut": "a_faire",
+      "priorite": "moyenne",
+      "responsable_email": null,
+      "date_echeance": null,
+      "en_retard": false,
+      "source": {
+        "source_system": "jira",
+        "source_record_id": "KAN-3",
+        "extracted_at": "2026-07-14T17:24:18.237681Z",
+        "champ_origine": "fields.status.name"
+      }
+    },
+    {
+      "task_id": "KAN-2",
+      "titre": "Développer le connecteur Jira",
+      "statut": "a_faire",
+      "priorite": "moyenne",
+      "responsable_email": null,
+      "date_echeance": null,
+      "en_retard": false,
+      "source": {
+        "source_system": "jira",
+        "source_record_id": "KAN-2",
+        "extracted_at": "2026-07-14T17:24:18.237681Z",
+        "champ_origine": "fields.status.name"
+      }
+    },
+    {
+      "task_id": "KAN-1",
+      "titre": "Mettre en place l'authentification API",
+      "statut": "en_cours",
+      "priorite": "moyenne",
+      "responsable_email": null,
+      "date_echeance": null,
+      "en_retard": false,
+      "source": {
+        "source_system": "jira",
+        "source_record_id": "KAN-1",
+        "extracted_at": "2026-07-14T17:24:18.237681Z",
+        "champ_origine": "fields.status.name"
+      }
+    }
+  ],
+  "resume_executif": null
+}
