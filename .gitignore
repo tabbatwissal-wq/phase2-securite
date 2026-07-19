@@ -19,6 +19,8 @@ htmlcov/
 # ── Secrets & configuration locale ────────────────────────────────────────
 # Ne JAMAIS commiter .env — il contient les clés API, tokens et mots de passe
 .env
+.env.*
+!.env.example
 .flaskenv
 
 # ── Phase 2 : ChromaDB (base vectorielle locale) ───────────────────────────
