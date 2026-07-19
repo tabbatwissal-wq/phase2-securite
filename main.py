@@ -8,10 +8,15 @@ Lancement    : uvicorn main:app --reload
 Documentation interactive : http://127.0.0.1:8000/docs
 """
 
-from fastapi import Depends, FastAPI 
+from fastapi import Depends, FastAPI, Header
 from auth_sso import router as sso_router
 
-from security_context import RequestContext, get_request_context, verifier_acces_projet
+from security_context import (
+    RequestContext,
+    get_request_context,
+    get_request_context_sso,
+    verifier_acces_projet,
+)
 from agent_jira import (
     recuperer_tickets_jira,
     mapper_ticket_vers_pivot,
@@ -34,6 +39,18 @@ app = FastAPI(
 
 app.include_router(sso_router)
 
+
+def get_context_sso_or_key(
+    x_api_key: str | None = Header(default=None),
+    x_session_token: str | None = Header(default=None),
+) -> RequestContext:
+    """Accepte soit une session SSO (X-Session-Token), soit l'ancien
+    système X-API-Key. Essaie d'abord la session SSO si présente."""
+    if x_session_token:
+        return get_request_context_sso(session=x_session_token)
+    return get_request_context(x_api_key=x_api_key)
+
+
 @app.get("/health")
 def health_check():
     """Endpoint public, sans authentification — juste pour vérifier que
@@ -54,7 +71,7 @@ def _construire_pivot(project_key: str):
 @app.get("/reports/{project_key}")
 def generer_rapport_securise(
     project_key: str,
-    context: RequestContext = Depends(get_request_context),
+    context: RequestContext = Depends(get_context_sso_or_key),
 ):
     """Génère l'Objet Pivot pour le projet demandé et le renvoie en JSON,
     uniquement si le RequestContext autorise l'accès à ce projet précis."""
@@ -103,7 +120,7 @@ def executer_pipeline_complet(project_key: str, context=None, output_path: str =
 @app.post("/reports/{project_key}/generate")
 def generer_pipeline_complet(
     project_key: str,
-    context: RequestContext = Depends(get_request_context),
+    context: RequestContext = Depends(get_context_sso_or_key),
 ):
     """Pipeline complet en un seul appel : Jira -> Objet Pivot -> MongoDB
     -> génération PPTX + PDF. C'est l'endpoint de démonstration de bout

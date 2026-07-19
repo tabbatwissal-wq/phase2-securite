@@ -13,6 +13,7 @@ Installation : pip install fastapi
 
 import json
 import os
+import jwt
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
@@ -50,8 +51,6 @@ def _charger_config_acces() -> dict:
             raise RuntimeError(f"API_USERS_JSON invalide : {e}")
         return config
 
-    # Repli sur l'ancien mode utilisateur unique, pour ne pas casser
-    # les installations existantes.
     token = os.getenv("API_ACCESS_TOKEN")
     email = os.getenv("API_USER_EMAIL")
     projets = os.getenv("API_ALLOWED_PROJECTS", "")
@@ -131,3 +130,48 @@ def verifier_acces_projet(project_key: str, context: RequestContext) -> None:
         )
     log_event(email=context.authenticated_email, project_key=project_key,
               action="access_project", success=True)
+
+
+def _obtenir_projets_par_email(email: str) -> list[str]:
+    """Cherche les projets autorisés pour un email donné, en réutilisant
+    la même configuration que le système X-API-Key."""
+    config = _charger_config_acces()
+    for entree in config.values():
+        if entree["email"] == email:
+            return entree["allowed_project_ids"]
+    return []
+
+
+def get_request_context_sso(session: str | None = Header(default=None, alias="X-Session-Token")) -> RequestContext:
+    """Dépendance FastAPI alternative : valide un token de session SSO
+    (créé après un login Microsoft réussi) et construit le RequestContext
+    correspondant, exactement comme pour X-API-Key."""
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session SSO manquante.",
+        )
+
+    secret = os.getenv("SESSION_SECRET", "dev-secret-change-me")
+    try:
+        payload = jwt.decode(session, secret, algorithms=["HS256"])
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session SSO invalide ou expirée.",
+        )
+
+    email = payload.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session SSO invalide.",
+        )
+
+    projets = _obtenir_projets_par_email(email)
+    log_event(email=email, project_key=None, action="auth_sso", success=True)
+
+    return RequestContext(
+        authenticated_email=email,
+        allowed_project_ids=projets,
+    )
