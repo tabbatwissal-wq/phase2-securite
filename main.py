@@ -8,7 +8,10 @@ Lancement    : uvicorn main:app --reload
 Documentation interactive : http://127.0.0.1:8000/docs
 """
 
-from fastapi import Depends, FastAPI, Header
+from fastapi import Depends, FastAPI, Header, Request
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from auth_sso import router as sso_router
 
 from security_context import (
@@ -36,6 +39,10 @@ app = FastAPI(
     description="Backend sécurisé pour la génération de rapports depuis Jira.",
     version="0.2.0",
 )
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.include_router(sso_router)
 
@@ -69,7 +76,9 @@ def _construire_pivot(project_key: str):
 
 
 @app.get("/reports/{project_key}")
+@limiter.limit("10/minute")
 def generer_rapport_securise(
+    request: Request,
     project_key: str,
     context: RequestContext = Depends(get_context_sso_or_key),
 ):
@@ -118,7 +127,9 @@ def executer_pipeline_complet(project_key: str, context=None, output_path: str =
 
 
 @app.post("/reports/{project_key}/generate")
+@limiter.limit("3/minute")
 def generer_pipeline_complet(
+    request: Request,
     project_key: str,
     context: RequestContext = Depends(get_context_sso_or_key),
 ):
