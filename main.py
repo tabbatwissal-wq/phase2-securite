@@ -11,6 +11,9 @@ Documentation interactive : http://127.0.0.1:8000/docs
 import logging
 import uuid
 
+from logging_config import configurer_logs
+configurer_logs()
+
 from fastapi import Depends, FastAPI, Header, Request
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address

@@ -3,13 +3,15 @@ Service d'audit - Phase 1
 Journalise chaque tentative d'authentification et chaque décision d'accès
 (autorisé ou refusé) dans une collection MongoDB dédiée, séparée du
 stockage des rapports eux-mêmes.
-
 Installation : pip install pymongo
 """
+import logging
 
 from datetime import datetime, timezone
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
+
+logger = logging.getLogger(__name__)
 
 MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "sofrecom_reporting"
@@ -39,7 +41,7 @@ def log_event(email: str | None, project_key: str | None, action: str,
         collection = _obtenir_collection_audit()
         collection.insert_one(evenement)
     except PyMongoError as e:
-        print(f"[audit] Impossible d'écrire le log d'audit : {e}")
+        logger.warning(f"Impossible d'écrire le log d'audit : {e}")
 
 
 def lister_logs(email: str | None = None, limite: int = 50) -> list[dict]:
