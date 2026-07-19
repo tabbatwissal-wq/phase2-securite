@@ -15,4 +15,7 @@ pytest
 streamlit
 chromadb
 ollama
+msal
+PyJWT
+slowapi
 
