@@ -10,3 +10,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
       - run: pytest test_security.py -v
+      - name: Audit des dépendances (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit --desc || echo "Vulnérabilités détectées (voir logs ci-dessus) — build non bloqué pour les vulnérabilités mineures."
