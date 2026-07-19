@@ -8,6 +8,9 @@ Lancement    : uvicorn main:app --reload
 Documentation interactive : http://127.0.0.1:8000/docs
 """
 
+import logging
+import uuid
+
 from fastapi import Depends, FastAPI, Header, Request
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -45,6 +48,20 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.include_router(sso_router)
+
+logger = logging.getLogger("app")
+
+
+@app.exception_handler(Exception)
+async def gestion_erreurs_globale(request: Request, exc: Exception):
+    """Capture toute exception non prévue. Logge le détail complet en
+    interne, mais ne renvoie jamais la stack trace au client."""
+    request_id = str(uuid.uuid4())
+    logger.error(f"[{request_id}] Erreur non gérée sur {request.url}: {exc}", exc_info=True)
+    return {
+        "error": "Une erreur interne est survenue",
+        "request_id": request_id,
+    }
 
 
 def get_context_sso_or_key(
