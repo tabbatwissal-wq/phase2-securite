@@ -8,7 +8,8 @@ Lancement    : uvicorn main:app --reload
 Documentation interactive : http://127.0.0.1:8000/docs
 """
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI 
+from auth_sso import router as sso_router
 
 from security_context import RequestContext, get_request_context, verifier_acces_projet
 from agent_jira import (
@@ -31,6 +32,7 @@ app = FastAPI(
     version="0.2.0",
 )
 
+app.include_router(sso_router)
 
 @app.get("/health")
 def health_check():
