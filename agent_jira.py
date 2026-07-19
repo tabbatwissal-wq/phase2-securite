@@ -17,6 +17,7 @@ import sys
 import json
 import requests
 import pandas as pd
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from datetime import date, datetime
 from dotenv import load_dotenv
 
@@ -95,10 +96,20 @@ def recuperer_nom_projet() -> str:
     return f"Projet {JIRA_PROJECT_KEY}"
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=4),
+    retry=retry_if_exception_type((requests.ConnectionError, requests.Timeout)),
+    reraise=True,
+)
 def recuperer_tickets_jira() -> list[dict]:
     """Appelle l'API Jira et renvoie la liste brute des tickets.
     Le paramètre 'fields' est obligatoire avec le nouvel endpoint /search/jql :
-    par défaut, seul 'id' est renvoyé, sans 'key' ni les champs métier."""
+    par défaut, seul 'id' est renvoyé, sans 'key' ni les champs métier.
+
+    Réessaie automatiquement (3 tentatives, backoff exponentiel) en cas
+    d'erreur réseau ou de timeout uniquement — jamais sur les erreurs
+    d'authentification (401/403), qui ne doivent pas être retentées."""
     url = f"{JIRA_URL}/rest/api/3/search/jql"
     jql = f'project = "{JIRA_PROJECT_KEY}" ORDER BY created DESC'
     response = requests.get(
@@ -110,6 +121,7 @@ def recuperer_tickets_jira() -> list[dict]:
             "maxResults": 100,
             "fields": "summary,status,priority,assignee,duedate,created,updated",
         },
+        timeout=10,
     )
     if response.status_code != 200:
         print(f"Erreur API Jira — code {response.status_code}")
@@ -217,9 +229,6 @@ def main():
 
     print("Construction de l'Objet Pivot final...")
     pivot = construire_objet_pivot(tasks, kpis, nom_projet)
-
-    # Validation Pydantic automatique déjà effectuée à la construction.
-    # Toute donnée invalide aurait levé une ValidationError avant d'arriver ici.
 
     output_path = "ProjectReportPivot.json"
     with open(output_path, "w", encoding="utf-8") as f:
