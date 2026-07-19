@@ -29,17 +29,19 @@ class RequestContext(BaseModel):
     request_id: UUID = Field(default_factory=uuid4)
     authenticated_email: EmailStr
     allowed_project_ids: list[str] = Field(default_factory=list)
+    roles: list[str] = Field(default_factory=lambda: ["reader"])
     requested_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
 
 
 def _charger_config_acces() -> dict:
-    """Charge la correspondance token -> (email, projets autorisés).
+    """Charge la correspondance token -> (email, projets autorisés, rôles).
 
     Deux modes possibles :
     1. Multi-utilisateurs (recommandé) : API_USERS_JSON contient un JSON
-       du type {"token1": {"email": "...", "allowed_project_ids": [...]}, ...}
+       du type {"token1": {"email": "...", "allowed_project_ids": [...],
+       "roles": [...]}, ...}
     2. Utilisateur unique (rétrocompatibilité POC) : API_ACCESS_TOKEN,
        API_USER_EMAIL, API_ALLOWED_PROJECTS.
     """
@@ -65,6 +67,7 @@ def _charger_config_acces() -> dict:
         token: {
             "email": email,
             "allowed_project_ids": [p.strip() for p in projets.split(",") if p.strip()],
+            "roles": ["admin"],
         }
     }
 
@@ -97,6 +100,7 @@ def get_request_context(x_api_key: str | None = Header(default=None)) -> Request
     return RequestContext(
         authenticated_email=entree["email"],
         allowed_project_ids=entree["allowed_project_ids"],
+        roles=entree.get("roles", ["reader"]),
     )
 
 
@@ -114,6 +118,7 @@ def construire_context_depuis_token(token: str) -> RequestContext | None:
     return RequestContext(
         authenticated_email=entree["email"],
         allowed_project_ids=entree["allowed_project_ids"],
+        roles=entree.get("roles", ["reader"]),
     )
 
 
@@ -132,14 +137,28 @@ def verifier_acces_projet(project_key: str, context: RequestContext) -> None:
               action="access_project", success=True)
 
 
-def _obtenir_projets_par_email(email: str) -> list[str]:
-    """Cherche les projets autorisés pour un email donné, en réutilisant
-    la même configuration que le système X-API-Key."""
+def verifier_role_admin(context: RequestContext) -> None:
+    """Bloque l'accès si l'utilisateur n'a pas le rôle admin. À utiliser
+    pour les actions coûteuses ou sensibles (ex: génération complète)."""
+    if "admin" not in context.roles:
+        log_event(email=context.authenticated_email, project_key=None,
+                   action="require_admin_role", success=False,
+                   detail="Rôle admin requis")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cette action nécessite le rôle administrateur.",
+        )
+
+
+def _obtenir_projets_par_email(email: str) -> tuple[list[str], list[str]]:
+    """Cherche les projets autorisés et les rôles pour un email donné, en
+    réutilisant la même configuration que le système X-API-Key.
+    Retourne (allowed_project_ids, roles)."""
     config = _charger_config_acces()
     for entree in config.values():
         if entree["email"] == email:
-            return entree["allowed_project_ids"]
-    return []
+            return entree["allowed_project_ids"], entree.get("roles", ["reader"])
+    return [], ["reader"]
 
 
 def get_request_context_sso(session: str | None = Header(default=None, alias="X-Session-Token")) -> RequestContext:
@@ -168,10 +187,11 @@ def get_request_context_sso(session: str | None = Header(default=None, alias="X-
             detail="Session SSO invalide.",
         )
 
-    projets = _obtenir_projets_par_email(email)
+    projets, roles = _obtenir_projets_par_email(email)
     log_event(email=email, project_key=None, action="auth_sso", success=True)
 
     return RequestContext(
         authenticated_email=email,
         allowed_project_ids=projets,
+        roles=roles,
     )

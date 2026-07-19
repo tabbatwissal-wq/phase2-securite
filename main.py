@@ -25,6 +25,7 @@ from security_context import (
     get_request_context,
     get_request_context_sso,
     verifier_acces_projet,
+    verifier_role_admin,
 )
 from agent_jira import (
     recuperer_tickets_jira,
@@ -157,6 +158,7 @@ def generer_pipeline_complet(
     -> génération PPTX + PDF. C'est l'endpoint de démonstration de bout
     en bout, celui à utiliser pour une présentation."""
     verifier_acces_projet(project_key, context)
+    verifier_role_admin(context)
 
     result = executer_pipeline_complet(project_key, context=context)
 
