@@ -147,3 +147,65 @@ pytest tests/ -v
 - MongoDB Community Server installé localement et lancé (service Windows actif)
 - [Ollama](https://ollama.com) installé avec `ollama pull llama3.2:3b`
 - Un compte Jira Cloud avec accès au projet de test
+## Sécurité (Phase 2 renforcée)
+
+### Authentification
+
+Deux méthodes coexistent :
+
+| Méthode | Usage |
+|---|---|
+| `X-API-Key` (en-tête HTTP) | Tests automatisés, appels machine-à-machine, scripts CLI |
+| SSO Microsoft Entra ID (`/auth/login`, `/auth/callback`) | Connexion via compte Microsoft professionnel, génère une session signée (`X-Session-Token`, valable 8h) |
+
+### Autorisation (RBAC)
+
+Chaque utilisateur a un ou plusieurs rôles définis dans `API_USERS_JSON` :
+
+| Rôle | Droits |
+|---|---|
+| `reader` | Consulter un rapport déjà généré (`GET /reports/{key}`) |
+| `admin` | Consulter **et** déclencher une génération complète (`POST /reports/{key}/generate`) |
+
+### Robustesse de l'API
+
+- **Rate limiting** : 10 req/min sur `/reports/{key}`, 3 req/min sur `/reports/{key}/generate`
+- **Gestion d'erreurs centralisée** : aucune stack trace exposée au client, réponse générique + `request_id`
+- **Retry automatique** : 3 tentatives avec backoff exponentiel sur les appels réseau à Jira
+- **Logs structurés** : format standardisé via `logging_config.py`
+
+### Protection des secrets
+
+- `.env` et `.env.*` exclus du dépôt Git (voir `.gitignore`)
+- Test automatique (`test_gitignore.py`) garantissant cette protection
+- Registre complet des secrets utilisés : voir [`SECRETS.md`](./SECRETS.md)
+
+### Documentation complète
+
+Voir [`CHECKLIST_SECURITE.md`](./CHECKLIST_SECURITE.md) pour le détail de chaque mesure de sécurité et comment la vérifier.
+
+## Conteneurisation (Docker)
+
+Le projet peut être lancé entièrement avec une seule commande :
+
+```powershell
+docker-compose up
+```
+
+Cela démarre MongoDB et l'API ensemble. Documentation interactive disponible sur `http://localhost:8000/docs`.
+
+## Intégration continue (CI/CD)
+
+Chaque `push` déclenche automatiquement (via GitHub Actions) :
+- L'exécution de la suite de tests de sécurité (`pytest test_security.py`)
+- Un audit des dépendances (`pip-audit`) pour détecter les vulnérabilités connues
+
+### Nouvelles variables d'environnement
+
+| Variable | Description |
+|---|---|
+| `API_USERS_JSON` | Config multi-utilisateurs avec rôles : `{"token": {"email": "...", "allowed_project_ids": [...], "roles": [...]}}` |
+| `AZURE_CLIENT_ID` | Identifiant client de l'application Microsoft Entra ID |
+| `AZURE_TENANT_ID` | Identifiant du tenant Microsoft Entra ID |
+| `AZURE_CLIENT_SECRET` | Secret client de l'application (à régénérer périodiquement) |
+| `SESSION_SECRET` | Clé de signature des sessions SSO (JWT) |
